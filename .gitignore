@@ -1,0 +1,17 @@
+# build output
+dist/
+release/
+
+# dependencies
+node_modules/
+
+# movie clips are copyrighted and stay local; only the manifest format is documented
+clips/*
+!clips/.gitkeep
+!clips/sources.example.txt
+
+# editor and OS noise
+.DS_Store
+*.log
+.vscode/
+.idea/

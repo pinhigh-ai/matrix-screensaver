@@ -1,0 +1,36 @@
+{
+  "name": "matrix-screensaver",
+  "version": "0.1.0",
+  "description": "Matrix-style digital rain screensaver with movie scenes rendered inside the rain, for macOS and Linux",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "esbuild src/renderer/main.ts --bundle --format=iife --target=chrome130 --outfile=dist/renderer/main.js && cp src/renderer/index.html dist/renderer/index.html",
+    "build": "npm run build:main && npm run build:renderer",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@types/node": "^24.6.0",
+    "electron": "^38.2.0",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.37.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.4"
+  },
+  "allowScripts": {
+    "electron@38.8.6": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
+  }
+}
