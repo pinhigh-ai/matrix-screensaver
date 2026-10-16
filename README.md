@@ -12,8 +12,8 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Step 1 of the plan: project scaffold, config loader, and a
-hello-world window.
+Under construction. Steps 1 and 2 of the plan are done: project scaffold, config
+loader, hello-world window, and the rain simulation as tested pure logic.
 
 ## Development
 
