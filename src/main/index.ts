@@ -1,26 +1,56 @@
 /**
- * Electron main process. Step 1 opens a single window showing the renderer;
- * idle detection, per-display windows and dismissal arrive in step 6.
+ * Electron main process. Opens a single window showing the renderer and
+ * answers its request for the clip list; idle detection, per-display
+ * windows and dismissal arrive in step 6.
  */
-import { app, BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import { parseConfig, type Config } from "./config.js";
+import { parseManifest } from "./manifest.js";
+import { CHANNEL_GET_CLIPS, type ClipInfo } from "../shared/bridge.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-
-async function loadConfig(): Promise<Config> {
-  const file = path.join(app.getPath("userData"), "config.json");
-  try {
-    return parseConfig(await readFile(file, "utf8"));
-  } catch {
-    return parseConfig(undefined);
-  }
-}
+const distRoot = path.join(here, "..");
 
 /** Set MATRIX_DEBUG=1 to relay renderer console output and the fps meter to stdout. */
 const debug = process.env.MATRIX_DEBUG === "1";
+/** Set MATRIX_SCENE_NOW=1 to play a scene within a couple of seconds of starting. */
+const sceneNow = process.env.MATRIX_SCENE_NOW === "1";
+
+async function readOptional(file: string): Promise<string | undefined> {
+  try {
+    return await readFile(file, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+async function loadConfig(): Promise<Config> {
+  return parseConfig(await readOptional(path.join(app.getPath("userData"), "config.json")));
+}
+
+function clipsDir(config: Config): string {
+  return config.clipsDir !== "" ? config.clipsDir : path.join(app.getAppPath(), "clips");
+}
+
+async function listClips(config: Config): Promise<ClipInfo[]> {
+  const dir = clipsDir(config);
+  const files = parseManifest(await readOptional(path.join(dir, "manifest.json")));
+  return files.map((file) => ({ name: file, url: pathToFileURL(path.join(dir, file)).href }));
+}
+
+function rendererQuery(config: Config): Record<string, string> {
+  const [sceneMin, sceneMax] = sceneNow ? [1, 2] : config.sceneIntervalSeconds;
+  return {
+    cellSize: String(config.cellSize),
+    sceneMin: String(sceneMin),
+    sceneMax: String(sceneMax),
+    sceneFade: String(config.sceneFadeSeconds),
+    fps: debug ? "1" : "0",
+  };
+}
 
 function createWindow(config: Config): BrowserWindow {
   // In debug the window takes the whole primary display so the frame rate
@@ -31,6 +61,7 @@ function createWindow(config: Config): BrowserWindow {
     height: size.height,
     backgroundColor: "#000000",
     webPreferences: {
+      preload: path.join(distRoot, "preload", "index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -41,8 +72,8 @@ function createWindow(config: Config): BrowserWindow {
       console.log(`[renderer] ${event.message}`);
     });
   }
-  void win.loadFile(path.join(here, "..", "renderer", "index.html"), {
-    query: { cellSize: String(config.cellSize), fps: debug ? "1" : "0" },
+  void win.loadFile(path.join(distRoot, "renderer", "index.html"), {
+    query: rendererQuery(config),
   });
   scheduleSnapshot(win);
   return win;
@@ -72,6 +103,7 @@ function scheduleSnapshot(win: BrowserWindow): void {
 app.whenReady().then(async () => {
   const config = await loadConfig();
   if (debug) console.log("matrix-screensaver config", config);
+  ipcMain.handle(CHANNEL_GET_CLIPS, () => listClips(config));
   createWindow(config);
 });
 

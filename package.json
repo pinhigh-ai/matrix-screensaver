@@ -8,8 +8,10 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build:main": "tsc -p tsconfig.main.json",
+    "build:preload": "esbuild src/preload/index.ts --bundle --format=cjs --platform=node --external:electron --outfile=dist/preload/index.cjs",
     "build:renderer": "esbuild src/renderer/main.ts --bundle --format=iife --target=chrome130 --outfile=dist/renderer/main.js && cp src/renderer/index.html dist/renderer/index.html",
-    "build": "npm run build:main && npm run build:renderer",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "test-clip": "scripts/make-test-clip.sh",
     "start": "npm run build && electron .",
     "test": "vitest run",
     "test:watch": "vitest",

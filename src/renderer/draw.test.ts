@@ -40,6 +40,15 @@ describe("drawGrid", () => {
     expect(calls).toEqual([{ sx: expected.x, sy: expected.y, dx: 30, dy: 20 }]);
   });
 
+  it("draws from an alternate brightness buffer when one is given", () => {
+    const grid = new Grid(2, 1);
+    grid.brightness[0] = 1;
+    const { blit, calls } = recorder();
+    drawGrid(grid, layout, cell, blit, new Float32Array([0, 1]));
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.dx).toBe(10);
+  });
+
   it("uses the head level for head cells regardless of brightness", () => {
     const grid = new Grid(2, 2);
     const cellIndex = grid.index(1, 1);

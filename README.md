@@ -12,9 +12,11 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Steps 1 to 3 of the plan are done: project scaffold, config
-loader, the rain simulation as tested pure logic, and the glyph-atlas draw loop
-that renders it at full frame rate.
+Under construction. Steps 1 to 4 of the plan are done: project scaffold, config
+loader, the rain simulation as tested pure logic, the glyph-atlas draw loop
+that renders it at full frame rate, and the scene layer that plays clips as
+glyph brightness inside the rain. Still to come: clip fetch and preparation
+scripts, idle detection with one window per display, packaging.
 
 ## Development
 
@@ -45,8 +47,26 @@ A JSON file in the per-user config directory
 ## Movie clips
 
 Film footage is copyrighted and is not part of this repository. You prepare
-clips locally; they stay in the gitignored `clips/` folder. Scripts for this
-arrive in a later step.
+clips locally; they stay in the gitignored `clips/` folder, listed in
+`clips/manifest.json`:
+
+```json
+{ "clips": [{ "file": "neo-wakes.webm" }, { "file": "lobby.webm" }] }
+```
+
+Every so often the saver picks a clip at random (never the same one twice in a
+row), fades it in over a couple of seconds, and renders each frame as the
+brightness of the rain's own glyphs while the rain itself dims to a quarter.
+Clips should be small and silent; 384x216 WebM is plenty, since one video pixel
+maps to one cell.
+
+To try the scene layer without any footage, generate a synthetic test clip
+(needs ffmpeg):
+
+```bash
+npm run test-clip
+MATRIX_DEBUG=1 MATRIX_SCENE_NOW=1 npm start   # plays a scene a second after launch
+```
 
 ## License
 

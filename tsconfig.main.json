@@ -5,9 +5,9 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "noEmit": false,
-    "outDir": "dist/main",
-    "rootDir": "src/main"
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "include": ["src/main/**/*.ts"],
-  "exclude": ["src/main/**/*.test.ts"]
+  "include": ["src/main/**/*.ts", "src/shared/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
