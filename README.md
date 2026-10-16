@@ -12,8 +12,9 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Steps 1 and 2 of the plan are done: project scaffold, config
-loader, hello-world window, and the rain simulation as tested pure logic.
+Under construction. Steps 1 to 3 of the plan are done: project scaffold, config
+loader, the rain simulation as tested pure logic, and the glyph-atlas draw loop
+that renders it at full frame rate.
 
 ## Development
 
@@ -50,3 +51,13 @@ arrive in a later step.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Debugging
+
+```bash
+MATRIX_DEBUG=1 npm start                          # full-display window, fps log on stdout
+MATRIX_DEBUG=1 MATRIX_SNAPSHOT=/tmp/rain.png npm start   # also save a screenshot after 8 s and quit
+```
+
+The glyphs need a font with half-width katakana. macOS ships one; on Fedora
+install `google-noto-sans-cjk-fonts`.
