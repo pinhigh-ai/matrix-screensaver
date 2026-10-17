@@ -163,6 +163,7 @@ function frame(now: number): void {
   );
 
   if (reportFps) {
+    drawDebugOverlay(view);
     frames++;
     if (now - fpsWindowStart >= 2000) {
       const fps = (frames * 1000) / (now - fpsWindowStart);
@@ -174,6 +175,32 @@ function frame(now: number): void {
     }
   }
   requestAnimationFrame(frame);
+}
+
+/** Debug: paint the sampled scene luminance as a small picture in the corner. */
+let overlay: HTMLCanvasElement | undefined;
+function drawDebugOverlay(v: View): void {
+  if (!ctx || scheduler.phase() !== "playing") return;
+  const { cols, rows } = v.grid;
+  if (!overlay || overlay.width !== cols || overlay.height !== rows) {
+    overlay = document.createElement("canvas");
+    overlay.width = cols;
+    overlay.height = rows;
+  }
+  const octx = overlay.getContext("2d");
+  if (!octx) return;
+  const image = octx.createImageData(cols, rows);
+  for (let i = 0; i < cols * rows; i++) {
+    const g = Math.round(255 * (v.lum[i] ?? 0));
+    image.data[i * 4] = g;
+    image.data[i * 4 + 1] = g;
+    image.data[i * 4 + 2] = g;
+    image.data[i * 4 + 3] = 255;
+  }
+  octx.putImageData(image, 0, 0);
+  const scale = 3;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(overlay, 8, window.innerHeight - rows * scale - 8, cols * scale, rows * scale);
 }
 
 window.addEventListener("resize", () => {

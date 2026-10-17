@@ -168,7 +168,11 @@ function scheduleSnapshot(windows: readonly BrowserWindow[]): void {
 }
 
 function startPreview(config: Config): void {
-  const size = debug ? screen.getPrimaryDisplay().size : { width: 1280, height: 720 };
+  // MATRIX_PREVIEW=full sizes the window to the display for frame-rate checks.
+  const size =
+    process.env.MATRIX_PREVIEW === "full"
+      ? screen.getPrimaryDisplay().size
+      : { width: 1280, height: 720 };
   const win = openWindow(config, { x: 80, y: 80, ...size }, 1, false);
   scheduleSnapshot([win]);
   win.on("closed", () => app.quit());

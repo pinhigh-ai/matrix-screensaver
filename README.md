@@ -156,7 +156,8 @@ release.
 
 ```bash
 npm start -- --preview                                       # one ordinary window, no idle watching
-MATRIX_DEBUG=1 npm start -- --preview                        # window the size of the display, fps log on stdout
+MATRIX_DEBUG=1 npm start -- --preview                        # fps log on stdout, sampled clip shown bottom-left
+MATRIX_DEBUG=1 MATRIX_PREVIEW=full npm start -- --preview    # window the size of the display for frame-rate checks
 MATRIX_DEBUG=1 MATRIX_SNAPSHOT=/tmp/rain.png npm start -- --now   # capture every display after 8 s and quit
 ```
 
