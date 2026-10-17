@@ -6,6 +6,13 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      sourceType: "module",
+      globals: { process: "readonly", console: "readonly" },
+    },
+  },
+  {
     files: ["**/*.ts"],
     rules: {
       "@typescript-eslint/explicit-module-boundary-types": "error",

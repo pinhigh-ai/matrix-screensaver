@@ -30,7 +30,10 @@ describe("buildManifest", () => {
   });
 
   it("round-trips through parseManifest", () => {
-    expect(parseManifest(buildManifest(["one.webm", "two.webm"]))).toEqual(["one.webm", "two.webm"]);
+    expect(parseManifest(buildManifest(["one.webm", "two.webm"]))).toEqual([
+      "one.webm",
+      "two.webm",
+    ]);
   });
 
   it("produces an empty list for no files", () => {
