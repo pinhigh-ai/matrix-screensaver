@@ -8,11 +8,14 @@
 #
 # Output name is the input's base name with a .webm extension. Existing
 # outputs are overwritten. Needs ffmpeg and a prior `npm run build:main`.
+# Set CLIPS_DIR to write somewhere other than clips/ in the checkout.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-clips="$root/clips"
-raw="$clips/raw"
+# CLIPS_DIR overrides where prepared clips and the manifest go, e.g. the
+# packaged app's folder (see README). Raw downloads always stay in the repo.
+clips="${CLIPS_DIR:-$root/clips}"
+raw="$root/clips/raw"
 width="${CLIP_WIDTH:-384}"
 height="${CLIP_HEIGHT:-216}"
 

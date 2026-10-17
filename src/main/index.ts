@@ -17,6 +17,7 @@ import { app, BrowserWindow, ipcMain, Menu, powerMonitor, screen, Tray } from "e
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { isAutostart, setAutostart } from "./autostart.js";
 import { parseConfig, type Config } from "./config.js";
 import { IdleMachine } from "./idle.js";
 import { parseManifest } from "./manifest.js";
@@ -48,8 +49,16 @@ async function loadConfig(): Promise<Config> {
   return parseConfig(await readOptional(path.join(app.getPath("userData"), "config.json")));
 }
 
+/**
+ * Where clips live: the configured folder, else clips/ in the checkout when
+ * running from source, else clips/ under the per-user data folder for the
+ * packaged app (the app bundle itself is read-only).
+ */
 function clipsDir(config: Config): string {
-  return config.clipsDir !== "" ? config.clipsDir : path.join(app.getAppPath(), "clips");
+  if (config.clipsDir !== "") return config.clipsDir;
+  return app.isPackaged
+    ? path.join(app.getPath("userData"), "clips")
+    : path.join(app.getAppPath(), "clips");
 }
 
 async function listClips(config: Config): Promise<ClipInfo[]> {
@@ -162,7 +171,7 @@ function startPreview(config: Config): void {
   win.on("closed", () => app.quit());
 }
 
-function startSaver(config: Config): void {
+async function startSaver(config: Config): Promise<void> {
   const machine = new IdleMachine(config.idleMinutes * 60);
   const act = (action: "show" | "hide" | undefined): void => {
     if (action === "show") showSaver(config);
@@ -174,9 +183,19 @@ function startSaver(config: Config): void {
 
   const tray = new Tray(trayIcon());
   tray.setToolTip("Matrix screensaver");
+  const autostart = await isAutostart();
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Preview now", click: () => act(machine.show()) },
+      {
+        label: "Start at login",
+        type: "checkbox",
+        checked: autostart,
+        // From source the executable is Electron itself, so only offer it packaged.
+        enabled: app.isPackaged,
+        click: (item) => void setAutostart(item.checked, process.execPath),
+      },
+      { label: `Clips folder: ${clipsDir(config)}`, enabled: false },
       { type: "separator" },
       { label: "Quit", click: () => app.quit() },
     ]),
@@ -195,7 +214,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(CHANNEL_GET_CLIPS, () => listClips(config));
   if (process.platform === "darwin") app.dock?.hide();
   if (previewMode) startPreview(config);
-  else startSaver(config);
+  else await startSaver(config);
 });
 
 // A tray app keeps running with no windows open; --preview quits on close.

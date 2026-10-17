@@ -12,14 +12,36 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Steps 1 to 6 of the plan are done: project scaffold, config
+Under construction. All seven steps of the plan are done: project scaffold, config
 loader, the rain simulation as tested pure logic, the glyph-atlas draw loop
 that renders it at full frame rate, and the scene layer that plays clips as
 glyph brightness inside the rain, the clip fetch and preparation scripts, and
-the idle-triggered shell that covers every display. Still to come: packaging
-and autostart.
+the idle-triggered shell that covers every display, and packaging with
+start-at-login. All plan steps are implemented; see Known limits below.
 
-## Running it
+## Install
+
+Download the build for your machine from the
+[releases page](https://github.com/pinhigh-ai/matrix-screensaver/releases),
+or build it yourself (see Packaging below).
+
+- **macOS (Apple silicon):** open the `.dmg` and drag Matrix Screensaver to
+  Applications. The app is not signed or notarized, so the first launch is
+  right-click > Open, then Open in the dialog. It runs as a menu-bar app with
+  no Dock icon.
+- **Fedora:** `sudo dnf install ./matrix-screensaver-<version>-x86_64.rpm`, or
+  make the `.AppImage` executable and run it. It runs under XWayland on GNOME
+  Wayland so it can place a window on every display.
+
+Then use the tray menu: "Preview now" shows the saver at once, "Start at
+login" installs a LaunchAgent (macOS) or an XDG autostart entry (Linux), and
+"Clips folder" shows where the packaged app looks for clips:
+`~/Library/Application Support/matrix-screensaver/clips` on macOS,
+`~/.config/matrix-screensaver/clips` on Linux. Prepare clips straight into it
+with `CLIPS_DIR=<that folder> scripts/prepare-clips.sh`, or set `clipsDir` in
+the config file to point anywhere else.
+
+## Running from source
 
 ```bash
 npm start            # sits in the menu bar / tray and watches idle time
@@ -102,6 +124,28 @@ To try the scene layer without any footage, generate a synthetic test clip:
 npm run test-clip
 MATRIX_DEBUG=1 MATRIX_SCENE_NOW=1 npm start -- --preview   # plays a scene a second after launch
 ```
+
+## Packaging
+
+```bash
+npm run dist:mac     # release/Matrix Screensaver-<version>-arm64.dmg
+npm run dist:linux   # release/matrix-screensaver-<version>-x86_64.AppImage and .rpm (run on Linux)
+```
+
+Pushing a tag like `v0.1.0` runs the Release workflow, which builds the
+macOS and Linux artefacts on GitHub's runners and attaches them to a GitHub
+release.
+
+## Known limits
+
+- Unsigned macOS build; Gatekeeper needs the right-click > Open dance once.
+- Not a System Settings screensaver. Apple's third-party screensaver engine
+  is unreliable on recent macOS (second displays stay black), so this app
+  watches idle time itself. Set the system screensaver longer than
+  `idleMinutes`.
+- On GNOME Wayland the app runs under XWayland. GNOME's own screen blank and
+  lock still apply; set their timeouts above `idleMinutes` too.
+- Film clips are never shipped; you fetch your own with `scripts/fetch-clips.sh`.
 
 ## Debugging
 

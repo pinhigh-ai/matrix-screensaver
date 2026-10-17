@@ -1,0 +1,39 @@
+appId: ai.pinhigh.matrix-screensaver
+productName: Matrix Screensaver
+copyright: Copyright © 2026 PinHigh
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - package.json
+asar: true
+npmRebuild: false
+
+mac:
+  category: public.app-category.entertainment
+  target:
+    - target: dmg
+      arch: [arm64]
+  icon: build/icon.png
+  # Menu-bar app: no Dock icon.
+  extendInfo:
+    LSUIElement: 1
+  # Unsigned: the first launch needs right-click > Open (see README).
+  identity: null
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+linux:
+  category: Utility
+  executableName: matrix-screensaver
+  icon: build/icon.png
+  target:
+    - AppImage
+    - rpm
+  artifactName: ${name}-${version}-${arch}.${ext}
+  desktop:
+    entry:
+      Name: Matrix Screensaver
+      Comment: Digital rain screensaver with movie scenes inside the rain
