@@ -28,6 +28,7 @@ dmg:
 linux:
   category: Utility
   executableName: matrix-screensaver
+  maintainer: Tim Davidson <tndavidson@gmail.com>
   icon: build/icon.png
   target:
     - AppImage
