@@ -1,6 +1,6 @@
 {
   "name": "matrix-screensaver",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Matrix-style digital rain screensaver with movie scenes rendered inside the rain, for macOS and Linux",
   "license": "MIT",
   "private": true,
