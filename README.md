@@ -12,11 +12,27 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Steps 1 to 5 of the plan are done: project scaffold, config
+Under construction. Steps 1 to 6 of the plan are done: project scaffold, config
 loader, the rain simulation as tested pure logic, the glyph-atlas draw loop
 that renders it at full frame rate, and the scene layer that plays clips as
-glyph brightness inside the rain, and the clip fetch and preparation scripts.
-Still to come: idle detection with one window per display, packaging.
+glyph brightness inside the rain, the clip fetch and preparation scripts, and
+the idle-triggered shell that covers every display. Still to come: packaging
+and autostart.
+
+## Running it
+
+```bash
+npm start            # sits in the menu bar / tray and watches idle time
+npm start -- --now   # show the saver on every display right away
+```
+
+After `idleMinutes` of no input the saver opens one always-on-top window per
+display. Press any key, click, scroll, or move the mouse a little and it goes
+away. The tray icon offers "Preview now" and "Quit".
+
+Set the system's own screensaver and screen lock to a longer timeout than
+`idleMinutes` (or off), otherwise the two fight over the screen. Display sleep
+is unaffected and still happens on the system's schedule.
 
 ## Development
 
@@ -84,14 +100,15 @@ To try the scene layer without any footage, generate a synthetic test clip:
 
 ```bash
 npm run test-clip
-MATRIX_DEBUG=1 MATRIX_SCENE_NOW=1 npm start   # plays a scene a second after launch
+MATRIX_DEBUG=1 MATRIX_SCENE_NOW=1 npm start -- --preview   # plays a scene a second after launch
 ```
 
 ## Debugging
 
 ```bash
-MATRIX_DEBUG=1 npm start                          # full-display window, fps log on stdout
-MATRIX_DEBUG=1 MATRIX_SNAPSHOT=/tmp/rain.png npm start   # also save a screenshot after 8 s and quit
+npm start -- --preview                                       # one ordinary window, no idle watching
+MATRIX_DEBUG=1 npm start -- --preview                        # window the size of the display, fps log on stdout
+MATRIX_DEBUG=1 MATRIX_SNAPSHOT=/tmp/rain.png npm start -- --now   # capture every display after 8 s and quit
 ```
 
 The glyphs need a font with half-width katakana. macOS ships one; on Fedora

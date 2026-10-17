@@ -10,6 +10,7 @@
  */
 import { atlasLayout, renderAtlas, type AtlasLayout } from "./atlas.js";
 import { ClipPlayer } from "./clip-player.js";
+import { watchForInput } from "./dismiss.js";
 import { compositeBrightness } from "./composite.js";
 import { drawGrid } from "./draw.js";
 import { GLYPHS } from "./glyphs.js";
@@ -29,6 +30,7 @@ const sceneMin = Math.max(0, num("sceneMin", 45));
 const sceneMax = Math.max(sceneMin, num("sceneMax", 120));
 const sceneFade = Math.max(0, num("sceneFade", 2));
 const reportFps = params.get("fps") === "1";
+const seed = num("seed", 1);
 /** How much the rain dims while a scene is fully in: 0 none, 1 black. */
 const SCENE_DIM = 0.75;
 
@@ -47,7 +49,7 @@ interface View {
   shown: Float32Array;
 }
 
-const rng = seededRandom(Date.now() >>> 0);
+const rng = seededRandom((Date.now() ^ (seed * 0x9e3779b1)) >>> 0);
 const player = new ClipPlayer();
 let scheduler = new SceneScheduler([], rng, {
   intervalSeconds: [sceneMin, sceneMax],
@@ -173,4 +175,5 @@ window.addEventListener("resize", () => {
 
 view = setup();
 void loadClips();
+watchForInput(window, () => window.matrix?.dismiss());
 requestAnimationFrame(frame);

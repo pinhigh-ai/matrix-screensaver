@@ -1,23 +1,40 @@
 /**
- * Electron main process. Opens a single window showing the renderer and
- * answers its request for the clip list; idle detection, per-display
- * windows and dismissal arrive in step 6.
+ * Electron main process.
+ *
+ * Runs as a menu-bar / tray app. Every second it reads the system idle
+ * time; when it passes the configured threshold it opens one fullscreen,
+ * always-on-top window per display, each running the renderer. Any key or
+ * mouse movement in a window closes them all and watching resumes.
+ *
+ * Flags and environment:
+ *   --now            show the saver on all displays immediately
+ *   --preview        open one ordinary window instead (development)
+ *   MATRIX_DEBUG=1   relay renderer console output and the fps meter
+ *   MATRIX_SCENE_NOW=1  play a scene a couple of seconds after showing
+ *   MATRIX_SNAPSHOT=/path.png  capture every window after 8 s and quit
  */
-import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, powerMonitor, screen, Tray } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { parseConfig, type Config } from "./config.js";
+import { IdleMachine } from "./idle.js";
 import { parseManifest } from "./manifest.js";
-import { CHANNEL_GET_CLIPS, type ClipInfo } from "../shared/bridge.js";
+import { trayIcon } from "./tray-icon.js";
+import { saverBounds, type Bounds } from "./windows.js";
+import { CHANNEL_DISMISS, CHANNEL_GET_CLIPS, type ClipInfo } from "../shared/bridge.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const distRoot = path.join(here, "..");
 
-/** Set MATRIX_DEBUG=1 to relay renderer console output and the fps meter to stdout. */
 const debug = process.env.MATRIX_DEBUG === "1";
-/** Set MATRIX_SCENE_NOW=1 to play a scene within a couple of seconds of starting. */
 const sceneNow = process.env.MATRIX_SCENE_NOW === "1";
+const showNow = process.argv.includes("--now");
+const previewMode = process.argv.includes("--preview");
+
+const log = (message: string): void => {
+  if (debug) console.log(message);
+};
 
 async function readOptional(file: string): Promise<string | undefined> {
   try {
@@ -41,25 +58,38 @@ async function listClips(config: Config): Promise<ClipInfo[]> {
   return files.map((file) => ({ name: file, url: pathToFileURL(path.join(dir, file)).href }));
 }
 
-function rendererQuery(config: Config): Record<string, string> {
+function rendererQuery(config: Config, seed: number): Record<string, string> {
   const [sceneMin, sceneMax] = sceneNow ? [1, 2] : config.sceneIntervalSeconds;
   return {
     cellSize: String(config.cellSize),
     sceneMin: String(sceneMin),
     sceneMax: String(sceneMax),
     sceneFade: String(config.sceneFadeSeconds),
+    seed: String(seed),
     fps: debug ? "1" : "0",
   };
 }
 
-function createWindow(config: Config): BrowserWindow {
-  // In debug the window takes the whole primary display so the frame rate
-  // measured is the one a real fullscreen saver would get.
-  const size = debug ? screen.getPrimaryDisplay().size : { width: 1280, height: 720 };
+const saverWindows: BrowserWindow[] = [];
+
+function openWindow(
+  config: Config,
+  bounds: Bounds,
+  seed: number,
+  fullscreen: boolean,
+): BrowserWindow {
   const win = new BrowserWindow({
-    width: size.width,
-    height: size.height,
+    ...bounds,
+    frame: !fullscreen,
+    alwaysOnTop: fullscreen,
+    skipTaskbar: fullscreen,
+    movable: !fullscreen,
+    resizable: !fullscreen,
+    fullscreenable: false,
+    hasShadow: false,
+    enableLargerThanScreen: true,
     backgroundColor: "#000000",
+    show: false,
     webPreferences: {
       preload: path.join(distRoot, "preload", "index.cjs"),
       contextIsolation: true,
@@ -67,31 +97,56 @@ function createWindow(config: Config): BrowserWindow {
       sandbox: true,
     },
   });
+  if (fullscreen) {
+    // 'screen-saver' sits above the menu bar and dock on macOS.
+    win.setAlwaysOnTop(true, "screen-saver");
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    win.setBounds(bounds);
+  }
   if (debug) {
     win.webContents.on("console-message", (event) => {
-      console.log(`[renderer] ${event.message}`);
+      console.log(`[renderer ${seed}] ${event.message}`);
     });
   }
+  win.once("ready-to-show", () => win.show());
   void win.loadFile(path.join(distRoot, "renderer", "index.html"), {
-    query: rendererQuery(config),
+    query: rendererQuery(config, seed),
   });
-  scheduleSnapshot(win);
   return win;
 }
 
+function showSaver(config: Config): void {
+  const bounds = saverBounds(screen.getAllDisplays());
+  log(`showing saver on ${bounds.length} display(s)`);
+  bounds.forEach((b, i) => saverWindows.push(openWindow(config, b, i + 1, true)));
+  scheduleSnapshot(saverWindows);
+}
+
+function hideSaver(): void {
+  log("hiding saver");
+  for (const win of saverWindows.splice(0)) {
+    if (!win.isDestroyed()) win.destroy();
+  }
+}
+
 /**
- * Development aid: with MATRIX_SNAPSHOT=/path/to/file.png the window is
- * captured after a few seconds of rain, written to that path, and the app
- * quits. Lets the renderer be checked without a person at the screen.
+ * Development aid: with MATRIX_SNAPSHOT=/path/to/file.png every window is
+ * captured after a few seconds of rain (suffix -2, -3 for further displays)
+ * and the app quits.
  */
-function scheduleSnapshot(win: BrowserWindow): void {
+function scheduleSnapshot(windows: readonly BrowserWindow[]): void {
   const target = process.env.MATRIX_SNAPSHOT;
   if (!target) return;
   setTimeout(async () => {
     try {
-      const image = await win.webContents.capturePage();
-      await writeFile(target, image.toPNG());
-      console.log(`snapshot written to ${target}`);
+      await Promise.all(
+        windows.map(async (win, i) => {
+          const file = i === 0 ? target : target.replace(/(\.[^.]+)?$/, (ext) => `-${i + 1}${ext}`);
+          const image = await win.webContents.capturePage();
+          await writeFile(file, image.toPNG());
+          console.log(`snapshot written to ${file}`);
+        }),
+      );
     } catch (error) {
       console.error("snapshot failed", error);
     } finally {
@@ -100,13 +155,50 @@ function scheduleSnapshot(win: BrowserWindow): void {
   }, 8000);
 }
 
+function startPreview(config: Config): void {
+  const size = debug ? screen.getPrimaryDisplay().size : { width: 1280, height: 720 };
+  const win = openWindow(config, { x: 80, y: 80, ...size }, 1, false);
+  scheduleSnapshot([win]);
+  win.on("closed", () => app.quit());
+}
+
+function startSaver(config: Config): void {
+  const machine = new IdleMachine(config.idleMinutes * 60);
+  const act = (action: "show" | "hide" | undefined): void => {
+    if (action === "show") showSaver(config);
+    if (action === "hide") hideSaver();
+  };
+
+  ipcMain.on(CHANNEL_DISMISS, () => act(machine.input()));
+  setInterval(() => act(machine.observe(powerMonitor.getSystemIdleTime())), 1000);
+
+  const tray = new Tray(trayIcon());
+  tray.setToolTip("Matrix screensaver");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Preview now", click: () => act(machine.show()) },
+      { type: "separator" },
+      { label: "Quit", click: () => app.quit() },
+    ]),
+  );
+  // Keep a reference so the tray is not garbage collected.
+  trays.push(tray);
+
+  if (showNow) act(machine.show());
+}
+
+const trays: Tray[] = [];
+
 app.whenReady().then(async () => {
   const config = await loadConfig();
-  if (debug) console.log("matrix-screensaver config", config);
+  log(`matrix-screensaver config ${JSON.stringify(config)}`);
   ipcMain.handle(CHANNEL_GET_CLIPS, () => listClips(config));
-  createWindow(config);
+  if (process.platform === "darwin") app.dock?.hide();
+  if (previewMode) startPreview(config);
+  else startSaver(config);
 });
 
+// A tray app keeps running with no windows open; --preview quits on close.
 app.on("window-all-closed", () => {
-  app.quit();
+  if (previewMode) app.quit();
 });

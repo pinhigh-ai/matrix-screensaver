@@ -13,9 +13,12 @@ export interface ClipInfo {
 export interface MatrixBridge {
   /** Prepared clips from the manifest; empty when there are none. */
   getClips(): Promise<ClipInfo[]>;
+  /** The user touched the keyboard or mouse: hide the saver. */
+  dismiss(): void;
 }
 
 export const CHANNEL_GET_CLIPS = "matrix:get-clips";
+export const CHANNEL_DISMISS = "matrix:dismiss";
 
 declare global {
   interface Window {
