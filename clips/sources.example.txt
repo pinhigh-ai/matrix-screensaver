@@ -1,0 +1,11 @@
+# Candidate scenes for the screensaver. Copy to clips/sources.txt, check the
+# start offsets against each video (these are guesses), then run
+# scripts/fetch-clips.sh. Columns: url start duration name
+#
+# Movieclips 4K uploads of The Matrix (1999)
+https://www.youtube.com/watch?v=LYwX4jqf1Yg 0:30 25 lobby
+https://www.youtube.com/watch?v=RK1vPUk8Xuo 1:00 25 red-pill
+https://www.youtube.com/watch?v=8XV8aBNOIqI 0:40 25 kung-fu
+https://www.youtube.com/watch?v=LJxX2z2NsPs 0:30 25 subway
+# Bullet-time rooftop dodge (fan 4K upload)
+https://www.youtube.com/watch?v=d8B5Sr0kP-M 0:20 20 dodge-this

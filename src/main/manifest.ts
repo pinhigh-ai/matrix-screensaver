@@ -28,3 +28,17 @@ export function parseManifest(text: string | undefined): string[] {
   }
   return files;
 }
+
+const VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mkv", ".mov", ".m4v"]);
+
+/**
+ * Manifest JSON for the given file names: video files only, sorted, so the
+ * output is stable between runs. Used by scripts/write-manifest.mjs.
+ */
+export function buildManifest(files: readonly string[]): string {
+  const clips = files
+    .filter((file) => VIDEO_EXTENSIONS.has(path.extname(file).toLowerCase()))
+    .sort()
+    .map((file) => ({ file }));
+  return `${JSON.stringify({ clips }, null, 2)}\n`;
+}

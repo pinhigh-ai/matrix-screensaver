@@ -12,11 +12,11 @@ the threshold passes. Any key or mouse movement dismisses it.
 
 ## Status
 
-Under construction. Steps 1 to 4 of the plan are done: project scaffold, config
+Under construction. Steps 1 to 5 of the plan are done: project scaffold, config
 loader, the rain simulation as tested pure logic, the glyph-atlas draw loop
 that renders it at full frame rate, and the scene layer that plays clips as
-glyph brightness inside the rain. Still to come: clip fetch and preparation
-scripts, idle detection with one window per display, packaging.
+glyph brightness inside the rain, and the clip fetch and preparation scripts.
+Still to come: idle detection with one window per display, packaging.
 
 ## Development
 
@@ -46,31 +46,46 @@ A JSON file in the per-user config directory
 
 ## Movie clips
 
-Film footage is copyrighted and is not part of this repository. You prepare
-clips locally; they stay in the gitignored `clips/` folder, listed in
-`clips/manifest.json`:
+Film footage is copyrighted and is not part of this repository. You fetch and
+prepare clips locally; they stay in the gitignored `clips/` folder and only
+the tooling is committed.
+
+1. Install the tools: `brew install ffmpeg yt-dlp` on macOS,
+   `sudo dnf install ffmpeg yt-dlp` on Fedora.
+2. Copy `clips/sources.example.txt` to `clips/sources.txt`. Each line is a
+   YouTube URL, a start time (`m:ss` or seconds), a duration in seconds and a
+   name. The example lists the lobby, red pill, dojo, subway and rooftop
+   scenes with guessed offsets; check them against the videos.
+3. Run the fetch yourself (downloading is against YouTube's terms, so the app
+   never does it for you):
+
+   ```bash
+   scripts/fetch-clips.sh
+   ```
+
+   It downloads just the requested section of each video into `clips/raw/`
+   and then runs `scripts/prepare-clips.sh`, which transcodes everything in
+   `clips/raw/` to silent 384x216 WebM in `clips/` and rewrites
+   `clips/manifest.json`. You can also drop your own files into `clips/raw/`
+   and run the prepare script alone.
+
+`clips/manifest.json` is plain JSON and can be edited by hand:
 
 ```json
-{ "clips": [{ "file": "neo-wakes.webm" }, { "file": "lobby.webm" }] }
+{ "clips": [{ "file": "lobby.webm" }, { "file": "subway.webm" }] }
 ```
 
 Every so often the saver picks a clip at random (never the same one twice in a
 row), fades it in over a couple of seconds, and renders each frame as the
 brightness of the rain's own glyphs while the rain itself dims to a quarter.
-Clips should be small and silent; 384x216 WebM is plenty, since one video pixel
-maps to one cell.
+One video pixel maps to one cell, so 384x216 is plenty.
 
-To try the scene layer without any footage, generate a synthetic test clip
-(needs ffmpeg):
+To try the scene layer without any footage, generate a synthetic test clip:
 
 ```bash
 npm run test-clip
 MATRIX_DEBUG=1 MATRIX_SCENE_NOW=1 npm start   # plays a scene a second after launch
 ```
-
-## License
-
-MIT. See [LICENSE](LICENSE).
 
 ## Debugging
 
