@@ -25,6 +25,16 @@ describe("parseConfig", () => {
     expect(parseConfig("{ not json")).toEqual(DEFAULT_CONFIG);
   });
 
+  it("accepts the scene fit and loop options and rejects bad values", () => {
+    expect(
+      parseConfig(JSON.stringify({ sceneFit: "contain", sceneLoop: true, sceneInvert: true })),
+    ).toMatchObject({ sceneFit: "contain", sceneLoop: true, sceneInvert: true });
+    expect(parseConfig(JSON.stringify({ sceneFit: "stretch", sceneLoop: "yes" }))).toMatchObject({
+      sceneFit: "cover",
+      sceneLoop: false,
+    });
+  });
+
   it("keeps the scene interval ordered", () => {
     const config = parseConfig(JSON.stringify({ sceneIntervalSeconds: [120, 30] }));
     expect(config.sceneIntervalSeconds).toEqual([30, 120]);

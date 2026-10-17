@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Transcode every video in clips/raw/ into a small silent WebM in clips/ and
 # rewrite clips/manifest.json. One video pixel becomes one rain cell, so
-# 384x216 is plenty; anything larger only costs decode time.
+# 384x216 is plenty; anything larger only costs decode time. The frame is
+# scaled so it covers that box while keeping its aspect ratio (a portrait
+# phone video comes out 384 wide and taller); the app crops at display time
+# according to sceneFit, so no bars are baked in here.
 #
 #   scripts/prepare-clips.sh            # process clips/raw/*
 #   scripts/prepare-clips.sh a.mp4 b.mkv   # process the given files instead
@@ -40,7 +43,7 @@ for input in "${inputs[@]}"; do
   out="$clips/$name.webm"
   echo "preparing $name"
   ffmpeg -y -loglevel error -i "$input" \
-    -vf "scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black,format=yuv420p" \
+    -vf "scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=2,format=yuv420p" \
     -r 24 -c:v libvpx-vp9 -b:v 400k -an "$out"
 done
 

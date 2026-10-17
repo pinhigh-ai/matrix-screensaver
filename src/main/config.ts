@@ -14,6 +14,12 @@ export interface Config {
   sceneFadeSeconds: number;
   /** Folder of prepared clips. Empty means the app's own clips/ folder. */
   clipsDir: string;
+  /** "cover" crops the clip to fill the screen; "contain" fits it with bars. */
+  sceneFit: "cover" | "contain";
+  /** Keep the clip looping for as long as the saver is up instead of fading out. */
+  sceneLoop: boolean;
+  /** Invert clip brightness: for a dark subject on a bright background. */
+  sceneInvert: boolean;
 }
 
 export const DEFAULT_CONFIG: Readonly<Config> = Object.freeze({
@@ -22,6 +28,9 @@ export const DEFAULT_CONFIG: Readonly<Config> = Object.freeze({
   sceneIntervalSeconds: [45, 120] as [number, number],
   sceneFadeSeconds: 2,
   clipsDir: "",
+  sceneFit: "cover" as const,
+  sceneLoop: false,
+  sceneInvert: false,
 });
 
 function isFiniteNumber(value: unknown): value is number {
@@ -58,6 +67,9 @@ export function parseConfig(text: string | undefined): Config {
     result.sceneIntervalSeconds = a <= b ? [a, b] : [b, a];
   }
   if (typeof doc.clipsDir === "string") result.clipsDir = doc.clipsDir;
+  if (doc.sceneFit === "cover" || doc.sceneFit === "contain") result.sceneFit = doc.sceneFit;
+  if (typeof doc.sceneLoop === "boolean") result.sceneLoop = doc.sceneLoop;
+  if (typeof doc.sceneInvert === "boolean") result.sceneInvert = doc.sceneInvert;
 
   return result;
 }

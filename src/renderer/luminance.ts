@@ -30,3 +30,50 @@ export function shapeLuminance(value: number, shape: Shape): number {
   const t = (value - shape.floor) / (1 - shape.floor);
   return Math.pow(Math.min(1, t), shape.gamma);
 }
+
+const BINS = 256;
+const histogram = new Uint32Array(BINS);
+
+/**
+ * Stretch a frame's luminance so the `low` percentile becomes 0 and the
+ * `high` percentile becomes 1, in place. Real footage rarely spans the whole
+ * range, and without this a lit floor or sky reads as a flat block. A flat
+ * frame (no spread) is left as it is.
+ */
+export function autoLevels(values: Float32Array, low: number, high: number): void {
+  const n = values.length;
+  if (n === 0) return;
+  histogram.fill(0);
+  for (let i = 0; i < n; i++) {
+    const v = values[i] ?? 0;
+    const bin = v <= 0 ? 0 : v >= 1 ? BINS - 1 : (v * (BINS - 1)) | 0;
+    histogram[bin] = (histogram[bin] ?? 0) + 1;
+  }
+  const lowCount = low * n;
+  const highCount = high * n;
+  let lo = 0;
+  let hi = BINS - 1;
+  let seen = 0;
+  for (let b = 0; b < BINS; b++) {
+    seen += histogram[b] ?? 0;
+    if (seen > lowCount) {
+      lo = b;
+      break;
+    }
+  }
+  seen = 0;
+  for (let b = 0; b < BINS; b++) {
+    seen += histogram[b] ?? 0;
+    if (seen >= highCount) {
+      hi = b;
+      break;
+    }
+  }
+  if (hi <= lo) return;
+  const min = lo / (BINS - 1);
+  const range = (hi - lo) / (BINS - 1);
+  for (let i = 0; i < n; i++) {
+    const t = ((values[i] ?? 0) - min) / range;
+    values[i] = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  }
+}

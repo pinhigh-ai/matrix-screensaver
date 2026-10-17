@@ -30,6 +30,11 @@ const sceneMin = Math.max(0, num("sceneMin", 45));
 const sceneMax = Math.max(sceneMin, num("sceneMax", 120));
 const sceneFade = Math.max(0, num("sceneFade", 2));
 const reportFps = params.get("fps") === "1";
+const sceneFit = params.get("sceneFit") === "contain" ? "contain" : "cover";
+const sceneLoop = params.get("sceneLoop") === "1";
+const sceneInvert = params.get("sceneInvert") === "1";
+/** A looping scene is the whole show, so it starts almost at once. */
+const sceneInterval: [number, number] = sceneLoop ? [1, 2] : [sceneMin, sceneMax];
 const seed = num("seed", 1);
 /** How much the rain dims while a scene is fully in: 0 none, 1 black. */
 const SCENE_DIM = 0.75;
@@ -50,9 +55,9 @@ interface View {
 }
 
 const rng = seededRandom((Date.now() ^ (seed * 0x9e3779b1)) >>> 0);
-const player = new ClipPlayer();
+const player = new ClipPlayer({ fit: sceneFit, loop: sceneLoop, invert: sceneInvert });
 let scheduler = new SceneScheduler([], rng, {
-  intervalSeconds: [sceneMin, sceneMax],
+  intervalSeconds: sceneInterval,
   fadeSeconds: sceneFade,
 });
 let view: View | undefined;
@@ -90,7 +95,7 @@ async function loadClips(): Promise<void> {
   scheduler = new SceneScheduler(
     clips.map((c) => c.url),
     rng,
-    { intervalSeconds: [sceneMin, sceneMax], fadeSeconds: sceneFade },
+    { intervalSeconds: sceneInterval, fadeSeconds: sceneFade },
   );
 }
 
@@ -98,8 +103,10 @@ function startScene(url: string): void {
   player
     .play(url)
     .then((duration) => {
-      console.log(`scene: playing ${url} for ${duration.toFixed(1)} s`);
-      scheduler.begin(duration);
+      console.log(
+        `scene: playing ${url} ${sceneLoop ? "on a loop" : `for ${duration.toFixed(1)} s`}`,
+      );
+      scheduler.begin(sceneLoop ? Infinity : duration);
     })
     .catch((error: unknown) => {
       console.error(String(error));

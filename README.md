@@ -74,13 +74,16 @@ A JSON file in the per-user config directory
 (`~/Library/Application Support/matrix-screensaver/config.json` on macOS,
 `~/.config/matrix-screensaver/config.json` on Linux). Every key is optional.
 
-| Key                    | Default     | Meaning                                                   |
-| ---------------------- | ----------- | --------------------------------------------------------- |
-| `idleMinutes`          | `5`         | Idle time before the saver starts                         |
-| `cellSize`             | `18`        | Glyph cell size in CSS pixels                             |
-| `sceneIntervalSeconds` | `[45, 120]` | Random wait between movie scenes, min and max             |
-| `sceneFadeSeconds`     | `2`         | Fade in and fade out duration for each scene              |
-| `clipsDir`             | `""`        | Folder of prepared clips; empty means `clips/` in the app |
+| Key                    | Default     | Meaning                                                                |
+| ---------------------- | ----------- | ---------------------------------------------------------------------- |
+| `idleMinutes`          | `5`         | Idle time before the saver starts                                      |
+| `cellSize`             | `18`        | Glyph cell size in CSS pixels                                          |
+| `sceneIntervalSeconds` | `[45, 120]` | Random wait between movie scenes, min and max                          |
+| `sceneFadeSeconds`     | `2`         | Fade in and fade out duration for each scene                           |
+| `clipsDir`             | `""`        | Folder of prepared clips; empty means `clips/` in the app              |
+| `sceneFit`             | `"cover"`   | `cover` crops the clip to fill the screen; `contain` fits it with bars |
+| `sceneLoop`            | `false`     | Start the clip right away and loop it for as long as the saver is up   |
+| `sceneInvert`          | `false`     | Swap dark and light, for a dark subject on a bright background         |
 
 ## Movie clips
 
@@ -116,7 +119,9 @@ the tooling is committed.
 Every so often the saver picks a clip at random (never the same one twice in a
 row), fades it in over a couple of seconds, and renders each frame as the
 brightness of the rain's own glyphs while the rain itself dims to a quarter.
-One video pixel maps to one cell, so 384x216 is plenty.
+One video pixel maps to one cell, so 384x216 is plenty. Each frame gets
+auto-levels and a steep tone curve so only the subject lights up; footage with
+a dark subject on a bright floor or sky looks best with `sceneInvert` on.
 
 To try the scene layer without any footage, generate a synthetic test clip:
 

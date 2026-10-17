@@ -74,6 +74,9 @@ function rendererQuery(config: Config, seed: number): Record<string, string> {
     sceneMin: String(sceneMin),
     sceneMax: String(sceneMax),
     sceneFade: String(config.sceneFadeSeconds),
+    sceneFit: config.sceneFit,
+    sceneLoop: config.sceneLoop ? "1" : "0",
+    sceneInvert: config.sceneInvert ? "1" : "0",
     seed: String(seed),
     fps: debug ? "1" : "0",
   };

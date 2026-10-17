@@ -17,6 +17,11 @@ describe("envelope", () => {
     expect(envelope(9, duration, fade)).toBeCloseTo(0.5, 5);
   });
 
+  it("fades in and then stays at 1 for an endless scene", () => {
+    expect(envelope(1, Infinity, fade)).toBeCloseTo(0.5, 5);
+    expect(envelope(5000, Infinity, fade)).toBe(1);
+  });
+
   it("never exceeds 1 even when the clip is shorter than two fades", () => {
     for (let t = 0; t <= 3; t += 0.25) {
       const e = envelope(t, 3, fade);
@@ -88,6 +93,17 @@ describe("SceneScheduler", () => {
     s.tick(5);
     expect(s.phase()).toBe("waiting");
     expect(s.envelope()).toBe(0);
+  });
+
+  it("keeps playing an endless scene", () => {
+    const s = make();
+    while (s.tick(1) === undefined) {
+      // wait
+    }
+    s.begin(Infinity);
+    for (let i = 0; i < 10000; i++) s.tick(1);
+    expect(s.phase()).toBe("playing");
+    expect(s.envelope()).toBe(1);
   });
 
   it("goes back to waiting when a requested clip fails to load", () => {
